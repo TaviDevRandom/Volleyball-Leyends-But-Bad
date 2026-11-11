@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyball Legends 3D - VBL Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #hud {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .score-box {
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            border: 2px solid #444;
+        }
+        #blue-score { border-color: #3b82f6; color: #60a5fa; }
+        #red-score { border-color: #ef4444; color: #f87171; }
+        
+        #style-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #475569;
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            z-index: 20;
+            width: 225px;
+        }
+        #style-panel h3 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+        .style-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .style-btn {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 7px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+        .style-btn:hover { background: #334155; }
+        .style-btn.active {
+            background: #2563eb;
+            border-color: #60a5fa;
+            color: white;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        #style-desc {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.35;
+            min-height: 36px;
+        }
+        .sens-control {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .sens-control input {
+            width: 100%;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        #status-msg {
+            position: absolute;
+            top: 75px;
+            width: 100%;
+            text-align: center;
+            color: #facc15;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #center-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 22px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 15;
+            text-shadow: 0 0 4px #000;
+        }
+        #lock-hint {
+            position: absolute;
+            top: 115px;
+            width: 100%;
+            text-align: center;
+            color: #93c5fd;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px #000;
+            pointer-events: none;
+            z-index: 15;
+        }
+        #controls-help {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #e5e7eb;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.55;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid #334155;
+        }
+        #ability-bar-container {
+            position: absolute;
+            bottom: 65px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #c084fc;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            border: 1px solid #a855f7;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+        #action-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #34d399;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            border: 1px solid #34d399;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="style-panel">
+        <h3>Estilo VBL</h3>
+        <div class="style-grid">
+            <button class="style-btn active" onclick="selectStyle('JINKO')">Jinko</button>
+            <button class="style-btn" onclick="selectStyle('KAZANA')">Kazana</button>
+            <button class="style-btn" onclick="selectStyle('HIDARI')">Hidari</button>
+            <button class="style-btn" onclick="selectStyle('TSH')">TSH</button>
+        </div>
+        <div id="style-desc"><strong>Jinko:</strong> Mantén A o D en el aire para remate curvo (Curveball) y S para Boomerang.</div>
+        <div class="sens-control">
+            <label for="sens-slider">Sensibilidad Ratón: <span id="sens-val">1.0</span>x</label>
+            <input type="range" id="sens-slider" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateSensitivity(this.value)">
+        </div>
+    </div>
+
+    <div id="hud">
+        <div id="blue-score" class="score-box">TÚ (AZUL): 0</div>
+        <div id="red-score" class="score-box">BOT (ROJO): 0</div>
+    </div>
+
+    <div id="status-msg">¡TU SAQUE! PRESIONA CLIC IZQUIERDO PARA LANZAR</div>
+    <div id="lock-hint">HAZ CLIC EN LA CANCHA PARA MOVER LA CÁMARA CON EL RATÓN (ESC PARA SOLTAR)</div>
+    <div id="center-crosshair">+</div>
+
+    <div id="controls-help">
+        <strong>CONTROLES VBL + ROBLOX:</strong><br>
+        [Clic en Pantalla] Capturar Ratón (3ra Persona)<br>
+        [SHIFT] Shift Lock (Mira fija sobre el hombro)<br>
+        [W A S D] Mover (suelo) / Tilt W-S-A-D (aire)<br>
+        [ESPACIO] Saltar (mantiene impulso del suelo)<br>
+        [CLIC IZQ] Saque / Bump (suelo) / Spike (aire)<br>
+        [Q] Set cercano / Bloqueo (aire)<br>
+        [E] Jump Set cercano / [R] Súper Salto Kazana<br>
+        [CTRL] Plancha (Dive)
+    </div>
+
+    <div id="ability-bar-container">CARGA TSH: <span id="tsh-charge">0</span>%</div>
+    <div id="action-indicator">LISTO</div>
+
+    <script>
+        const STYLES = {
+            JINKO: {
+                name: 'Jinko',
+                color: 0x06b6d4,
+                hair: 0x1e293b,
+                jump: 12.2,
+                power: 16.5,
+                desc: '<strong>Jinko:</strong> Mantén A o D en el aire para remate curvo (Curveball) y S para Boomerang.'
+            },
+            KAZANA: {
+                name: 'Kazana',
+                color: 0x10b981,
+                hair: 0x064e3b,
+                jump: 12.2,
+                superJump: 16.2,
+                power: 17.5,
+                desc: '<strong>Kazana:</strong> Presiona [R] para activar/desactivar Súper Salto (más gravedad al rematar). S-Tilt no sale.'
+            },
+            HIDARI: {
+                name: 'Hidari',
+                color: 0xef4444,
+                hair: 0x7f1d1d,
+                jump: 12.4,
+                power: 16.5,
+                leftPower: 22.0,
+                desc: '<strong>Hidari:</strong> Remata golpeando con la MANO IZQUIERDA (balón a tu izquierda) para activar su potencia y gravedad extra.'
+            },
+            TSH: {
+                name: 'TSH',
+                color: 0xa855f7,
+                hair: 0xf97316,
+                jump: 12.0,
+                power: 16.5,
+                desc: '<strong>TSH (Timeskip Hinto):</strong> Corre hacia adelante (W) para cargar tu salto al 100%.'
+            }
+        };
+
+        let currentStyleKey = 'JINKO';
+        let kazanaSuperJump = false;
+
+        // --- ESCENA THREE.JS ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a);
+        scene.fog = new THREE.Fog(0x0f172a, 28, 75);
+
+        const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 120);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- CÁMARA 3RA PERSONA Y SHIFT LOCK ---
+        let camYaw = 0;
+        let camPitch = 0.28;
+        let camDist = 9.0;
+        let mouseSens = 1.0;
+        let shiftLock = false;
+        let isPointerLocked = false;
+
+        const crosshairEl = document.getElementById('center-crosshair');
+        const lockHintEl = document.getElementById('lock-hint');
+
+        function updateSensitivity(val) {
+            mouseSens = parseFloat(val);
+            document.getElementById('sens-val').innerText = mouseSens.toFixed(1);
+        }
+
+        renderer.domElement.addEventListener('click', () => {
+            if (document.pointerLockElement !== renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = (document.pointerLockElement === renderer.domElement);
+            lockHintEl.style.display = isPointerLocked ? 'none' : 'block';
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isPointerLocked) return;
+            const sensFactor = 0.0028 * mouseSens;
+            camYaw -= e.movementX * sensFactor;
+            camPitch += e.movementY * sensFactor;
+            camPitch = THREE.MathUtils.clamp(camPitch, -0.1, 1.15);
+        });
+
+        window.addEventListener('wheel', e => {
+            camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.006, 4.5, 16.0);
+        });
+
+        function toggleShiftLock() {
+            shiftLock = !shiftLock;
+            crosshairEl.style.color = shiftLock ? '#38bdf8' : 'rgba(255, 255, 255, 0.75)';
+            crosshairEl.innerText = shiftLock ? '⊕' : '+';
+            setActionText(shiftLock ? "SHIFT LOCK: ON" : "SHIFT LOCK: OFF", shiftLock ? "#38bdf8" : "#94a3b8");
+        }
+
+        // --- LUCES ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+        dirLight.position.set(12, 26, 16);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- CANCHA Y RED ---
+        const courtW = 14, courtL = 26;
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(courtW, 0.4, courtL),
+            new THREE.MeshStandardMaterial({ color: 0xd97706 })
+        );
+        floor.position.y = -0.2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const outerFloor = new THREE.Mesh(
+            new THREE.BoxGeometry(38, 0.35, 50),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b })
+        );
+        outerFloor.position.y = -0.22;
+        outerFloor.receiveShadow = true;
+        scene.add(outerFloor);
+
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const centerLine = new THREE.Mesh(new THREE.BoxGeometry(courtW, 0.02, 0.16), lineMat);
+        centerLine.position.y = 0.01;
+        const attackBlue = new THREE.Mesh(new THREE.BoxGeometry(courtW, 0.02, 0.12), lineMat);
+        attackBlue.position.set(0, 0.01, 4.3);
+        const attackRed = new THREE.Mesh(new THREE.BoxGeometry(courtW, 0.02, 0.12), lineMat);
+        attackRed.position.set(0, 0.01, -4.3);
+        scene.add(centerLine, attackBlue, attackRed);
+
+        // Red
+        const netHeight = 3.3;
+        const net = new THREE.Mesh(
+            new THREE.BoxGeometry(courtW + 0.4, 1.25, 0.08),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, wireframe: true })
+        );
+        net.position.set(0, netHeight - 0.62, 0);
+        const topTape = new THREE.Mesh(
+            new THREE.BoxGeometry(courtW + 0.4, 0.1, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0xf8fafc })
+        );
+        topTape.position.set(0, netHeight, 0);
+        scene.add(net, topTape);
+
+        const postGeo = new THREE.CylinderGeometry(0.14, 0.14, netHeight + 0.2);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+        const postL = new THREE.Mesh(postGeo, postMat);
+        postL.position.set(-courtW/2 - 0.25, netHeight/2, 0);
+        const postR = new THREE.Mesh(postGeo, postMat);
+        postR.position.set(courtW/2 + 0.25, netHeight/2, 0);
+        scene.add(postL, postR);
+
+        // --- MODELOS TIPO ROBLOX (R6) ---
+        function createRobloxCharacter(shirtColor, hairColor, zPos, isPlayer) {
+            const root = new THREE.Group();
+            const rig = new THREE.Group();
+            root.add(rig);
+
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+            const hairMat = new THREE.MeshStandardMaterial({ color: hairColor });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.0, 0.5), shirtMat);
+            torso.position.y = 1.3;
+            torso.castShadow = true;
+            rig.add(torso);
+
+            const head = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.6, 16), skinMat);
+            head.position.y = 2.15;
+            head.castShadow = true;
+            rig.add(head);
+
+            const hair = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.35, 0.68), hairMat);
+            hair.position.y = 2.38;
+            rig.add(hair);
+
+            const legGeo = new THREE.BoxGeometry(0.45, 0.8, 0.45);
+            const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+            leftLeg.position.set(-0.26, 0.4, 0);
+            const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+            rightLeg.position.set(0.26, 0.4, 0);
+            rig.add(leftLeg, rightLeg);
+
+            const armGeo = new THREE.BoxGeometry(0.4, 0.95, 0.4);
+            const leftArmPivot = new THREE.Group();
+            leftArmPivot.position.set(-0.72, 1.75, 0);
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            leftArm.position.y = -0.42;
+            leftArmPivot.add(leftArm);
+
+            const rightArmPivot = new THREE.Group();
+            rightArmPivot.position.set(0.72, 1.75, 0);
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+            rightArm.position.y = -0.42;
+            rightArmPivot.add(rightArm);
+
+            rig.add(leftArmPivot, rightArmPivot);
+
+            const auraGeo = new THREE.RingGeometry(0.55, 0.68, 24);
+            const auraMat = new THREE.MeshBasicMaterial({ color: shirtColor, side: THREE.DoubleSide });
+            const aura = new THREE.Mesh(auraGeo, auraMat);
+            aura.rotation.x = -Math.PI / 2;
+            aura.position.y = 2.65;
+            rig.add(aura);
+
+            let hitboxRing = null;
+            if (isPlayer) {
+                const hbGeo = new THREE.RingGeometry(2.5, 2.75, 32);
+                const hbMat = new THREE.MeshBasicMaterial({
+                    color: 0x38bdf8,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.0
+                });
+                hitboxRing = new THREE.Mesh(hbGeo, hbMat);
+                hitboxRing.rotation.x = -Math.PI / 2;
+                hitboxRing.position.y = 0.04;
+                root.add(hitboxRing);
+            }
+
+            root.position.set(0, 0, zPos);
+            scene.add(root);
+
+            return {
+                mesh: root,
+                rig,
+                torso,
+                shirtMat,
+                hairMat,
+                auraMat,
+                hitboxRing,
+                leftLeg,
+                rightLeg,
+                leftArmPivot,
+                rightArmPivot,
+                vel: new THREE.Vector3(),
+                airVelX: 0,
+                airVelZ: 0,
+                onGround: true,
+                diving: false,
+                animTime: 0
+            };
+        }
+
+        const player = createRobloxCharacter(STYLES.JINKO.color, STYLES.JINKO.hair, 8.5, true);
+        const bot = createRobloxCharacter(0xef4444, 0x0f172a, -8.5, false);
+        bot.mesh.rotation.y = Math.PI;
+
+        // Balón VBL
+        const ball = new THREE.Mesh(
+            new THREE.SphereGeometry(0.45, 24, 24),
+            new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 })
+        );
+        ball.castShadow = true;
+        scene.add(ball);
+
+        const ballShadow = new THREE.Mesh(
+            new THREE.CircleGeometry(0.52, 20),
+            new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45 })
+        );
+        ballShadow.rotation.x = -Math.PI / 2;
+        ballShadow.position.y = 0.02;
+        scene.add(ballShadow);
+
+        // --- ESTADO DE JUEGO ---
+        let blueScore = 0, redScore = 0;
+        let gameState = 'SERVE_BLUE';
+        let resetTimer = null;
+        let ballGravity = -21;
+        const ballVel = new THREE.Vector3();
+        const ballSpin = new THREE.Vector3();
+        const playerGravity = -24;
+        const keys = {};
+        let tshCharge = 0;
+
+        let activeAction = null;
+        let actionTimer = 0;
+        let swingTimer = 0;
+        const ACTION_DURATION = 0.5;
+
+        const statusEl = document.getElementById('status-msg');
+        const actionEl = document.getElementById('action-indicator');
+        const tshContainer = document.getElementById('ability-bar-container');
+        const tshValEl = document.getElementById('tsh-charge');
+
+        function setActionText(text, color = '#34d399') {
+            actionEl.innerText = text;
+            actionEl.style.color = color;
+            actionEl.style.borderColor = color;
+        }
+
+        function updateAbilityHud() {
+            if (currentStyleKey === 'TSH') {
+                tshContainer.style.display = 'block';
+                tshContainer.style.color = '#c084fc';
+                tshContainer.style.borderColor = '#a855f7';
+                tshContainer.innerHTML = `CARGA TSH: <span id="tsh-charge">${Math.floor(tshCharge)}</span>%`;
+            } else if (currentStyleKey === 'KAZANA') {
+                tshContainer.style.display = 'block';
+                tshContainer.style.color = kazanaSuperJump ? '#4ade80' : '#94a3b8';
+                tshContainer.style.borderColor = kazanaSuperJump ? '#22c55e' : '#475569';
+                tshContainer.innerHTML = `SÚPER SALTO [R]: ${kazanaSuperJump ? 'ACTIVADO' : 'DESACTIVADO'}`;
+            } else {
+                tshContainer.style.display = 'none';
+            }
+        }
+
+        function selectStyle(key) {
+            currentStyleKey = key;
+            const st = STYLES[key];
+            player.shirtMat.color.setHex(st.color);
+            player.hairMat.color.setHex(st.hair);
+            player.auraMat.color.setHex(st.color);
+            document.getElementById('style-desc').innerHTML = st.desc;
+
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toUpperCase() === key);
+            });
+
+            tshCharge = 0;
+            kazanaSuperJump = false;
+            updateAbilityHud();
+            setActionText(`ESTILO: ${st.name.toUpperCase()}`, '#60a5fa');
+        }
+
+        function scorePoint(winner, message, nextServer) {
+            if (gameState === 'POINT_DELAY') return;
+            gameState = 'POINT_DELAY';
+            ballVel.set(0, 0, 0);
+            ballSpin.set(0, 0, 0);
+
+            if (winner === 'BLUE') {
+                blueScore++;
+            } else {
+                redScore++;
+            }
+
+            document.getElementById('blue-score').innerText = `TÚ (AZUL): ${blueScore}`;
+            document.getElementById('red-score').innerText = `BOT (ROJO): ${redScore}`;
+            statusEl.innerText = message;
+
+            if (resetTimer) clearTimeout(resetTimer);
+            resetTimer = setTimeout(() => {
+                resetBall(nextServer);
+            }, 1600);
+        }
+
+        function resetBall(server) {
+            if (resetTimer) {
+                clearTimeout(resetTimer);
+                resetTimer = null;
+            }
+            ballVel.set(0, 0, 0);
+            ballSpin.set(0, 0, 0);
+            ballGravity = -21;
+            activeAction = null;
+            actionTimer = 0;
+            swingTimer = 0;
+
+            if (server === 'BLUE') {
+                gameState = 'SERVE_BLUE';
+                player.mesh.position.set(0, 0, 11.5);
+                player.vel.set(0, 0, 0);
+                player.airVelX = 0;
+                player.airVelZ = 0;
+                player.onGround = true;
+                ball.position.set(0, 2.1, 10.7);
+                statusEl.innerText = "¡TU SAQUE! PRESIONA CLIC IZQUIERDO PARA LANZAR";
+            } else {
+                gameState = 'PLAYING';
+                bot.mesh.position.set(0, 0, -11.5);
+                ball.position.set(0, 2.6, -10.5);
+                ballVel.set((Math.random() - 0.5) * 5, 11.5, 13.5);
+                statusEl.innerText = "¡SAQUE DEL RIVAL!";
+                setTimeout(() => { if (gameState === 'PLAYING') statusEl.innerText = ""; }, 1200);
+            }
+        }
+
+        function getLookForward() {
+            return new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw)).normalize();
+        }
+
+        function getLookRight() {
+            // Vector apuntando estrictamente hacia el hombro DERECHO del jugador cuando mira al frente (-Z)
+            // Cuando camYaw = 0 (mirando a -Z): (-sin(0), 0, -cos(0)) = (0, 0, -1).
+            // El vector hacia la DERECHA (+X) es (cos(0), 0, -sin(0)) = (1, 0, 0).
+            // El vector hacia la IZQUIERDA (-X) es (-1, 0, 0).
+            return new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw)).normalize();
+        }
+
+        // --- CONTROLES VBL ---
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                toggleShiftLock();
+            }
+
+            if (e.code === 'KeyR' && currentStyleKey === 'KAZANA') {
+                kazanaSuperJump = !kazanaSuperJump;
+                player.auraMat.color.setHex(kazanaSuperJump ? 0x4ade80 : STYLES.KAZANA.color);
+                updateAbilityHud();
+                setActionText(kazanaSuperJump ? "¡SÚPER SALTO ACTIVADO!" : "SÚPER SALTO DESACTIVADO", kazanaSuperJump ? "#4ade80" : "#94a3b8");
+            }
+
+            if (e.code === 'Space' && player.onGround && !player.diving) {
+                const st = STYLES[currentStyleKey];
+                let jumpPower = st.jump;
+                if (currentStyleKey === 'KAZANA' && kazanaSuperJump) {
+                    jumpPower = st.superJump;
+                } else if (currentStyleKey === 'TSH') {
+                    jumpPower += (tshCharge / 100) * 4.5;
+                    if (tshCharge >= 95) setActionText("⚡ ¡SÚPER SALTO TSH! ⚡", "#c084fc");
+                    tshCharge = 0;
+                    updateAbilityHud();
+                }
+                player.airVelX = player.vel.x;
+                player.airVelZ = player.vel.z;
+                player.vel.y = jumpPower;
+                player.onGround = false;
+                if (jumpPower <= 13) setActionText("SALTO");
+            }
+
+            if (e.code === 'KeyQ') {
+                startAction(player.onGround ? 'SET' : 'BLOCK');
+            }
+            if (e.code === 'KeyE') {
+                if (player.onGround) {
+                    player.airVelX = player.vel.x * 0.7;
+                    player.airVelZ = player.vel.z * 0.7;
+                    player.vel.y = 10.5;
+                    player.onGround = false;
+                }
+                startAction('JUMP_SET');
+            }
+            if (e.code === 'ControlLeft') {
+                triggerDive();
+            }
+        });
+
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        window.addEventListener('mousedown', e => {
+            if (!isPointerLocked) return;
+            if (e.button === 0) {
+                if (gameState === 'SERVE_BLUE') {
+                    gameState = 'TOSS_BLUE';
+                    ballVel.set(0, 10.5, -1.2);
+                    statusEl.innerText = "¡SALTA Y REMATA CON CLIC IZQUIERDO!";
+                    setActionText("TOSS (LANZAMIENTO)", "#facc15");
+                    return;
+                }
+                startAction(player.onGround ? 'BUMP' : 'SPIKE');
+            }
+        });
+
+        function startAction(type) {
+            activeAction = type;
+            actionTimer = ACTION_DURATION;
+            if (type === 'BUMP') setActionText("RECEPCIÓN (BUMP)", "#34d399");
+            if (type === 'SPIKE') setActionText("PREPARANDO REMATE", "#f87171");
+            if (type === 'SET') setActionText("COLOCANDO (SET)", "#60a5fa");
+            if (type === 'JUMP_SET') setActionText("JUMP SET", "#60a5fa");
+            if (type === 'BLOCK') setActionText("BLOQUEO", "#a78bfa");
+        }
+
+        function triggerDive() {
+            if (!player.onGround || player.diving) return;
+            const fwd = getLookForward();
+            const right = getLookRight();
+            let dirX = 0, dirZ = 0;
+            if (keys['KeyW']) { dirX += fwd.x; dirZ += fwd.z; }
+            if (keys['KeyS']) { dirX -= fwd.x; dirZ -= fwd.z; }
+            if (keys['KeyD']) { dirX += right.x; dirZ += right.z; }
+            if (keys['KeyA']) { dirX -= right.x; dirZ -= right.z; }
+
+            if (dirX === 0 && dirZ === 0) { dirX = fwd.x; dirZ = fwd.z; }
+            const len = Math.hypot(dirX, dirZ) || 1;
+
+            player.diving = true;
+            player.vel.x = (dirX / len) * 16;
+            player.vel.z = (dirZ / len) * 16;
+            player.rig.rotation.x = -Math.PI / 2.2;
+            player.rig.position.y = -0.5;
+            startAction('DIVE');
+            setActionText("¡DIVE (PLANCHA)!", "#38bdf8");
+
+            setTimeout(() => {
+                player.diving = false;
+                player.rig.rotation.x = 0;
+                player.rig.position.y = 0;
+            }, 520);
+        }
+
+        function isBallInHitbox() {
+            const dx = ball.position.x - player.mesh.position.x;
+            const dz = ball.position.z - player.mesh.position.z;
+            const horizDist = Math.hypot(dx, dz);
+            const dy = ball.position.y - (player.mesh.position.y + 1.4);
+            return horizDist < 3.1 && Math.abs(dy) < 2.8;
+        }
+
+        function executeActiveAction() {
+            if (!activeAction || actionTimer <= 0) return;
+            if (gameState !== 'PLAYING' && gameState !== 'TOSS_BLUE') return;
+            if (!isBallInHitbox()) return;
+
+            const st = STYLES[currentStyleKey];
+            const fwd = getLookForward();
+            const right = getLookRight();
+            const sideTilt = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0);
+
+            if (activeAction === 'BUMP' || activeAction === 'DIVE') {
+                gameState = 'PLAYING';
+                ballGravity = -21;
+                const aimX = fwd.x * 6.5 + right.x * sideTilt * 4.5;
+                const aimZ = fwd.z * 6.5 + right.z * sideTilt * 4.5;
+                ballVel.set(aimX, 13.5, aimZ);
+                ballSpin.set(0, 0, 0);
+                statusEl.innerText = "";
+                setActionText(activeAction === 'DIVE' ? "¡SALVADA CON DIVE!" : "¡RECEPCIÓN EXITOSA!", "#34d399");
+                activeAction = null;
+            }
+            else if (activeAction === 'SET' || activeAction === 'JUMP_SET') {
+                gameState = 'PLAYING';
+                ballGravity = -21;
+                const setX = fwd.x * 1.4 + right.x * sideTilt * 1.6;
+                const setZ = fwd.z * 1.4 + right.z * sideTilt * 1.6;
+                ballVel.set(setX, 13.2, setZ);
+                ballSpin.set(0, 0, 0);
+                statusEl.innerText = "";
+                setActionText("¡COLOCACIÓN CERCANA!", "#60a5fa");
+                activeAction = null;
+            }
+            else if (activeAction === 'BLOCK') {
+                if (player.mesh.position.z < 3.5) {
+                    ballGravity = -22;
+                    ballVel.set(fwd.x * 4, -5.5, fwd.z * 7);
+                    ballSpin.set(0, 0, 0);
+                    setActionText("¡BLOQUEO EXITOSO!", "#a78bfa");
+                    activeAction = null;
+                }
+            }
+            else if (activeAction === 'SPIKE') {
+                gameState = 'PLAYING';
+                statusEl.innerText = "";
+                swingTimer = 0.25;
+                let power = st.power;
+                let vy = -3.8;
+                ballGravity = -21;
+                ballSpin.set(0, 0, 0);
+
+                // Detección de mano izquierda para Hidari:
+                // En vista 3ra persona mirando hacia la red (-Z), el lado IZQUIERDO del jugador es -right (-X)
+                if (currentStyleKey === 'HIDARI') {
+                    const relBall = new THREE.Vector3().subVectors(ball.position, player.mesh.position);
+                    const dotRight = relBall.dot(right);
+                    const isLeftHandHit = (dotRight < -0.15) || (keys['KeyA'] && !keys['KeyD']);
+
+                    if (isLeftHandHit) {
+                        power = st.leftPower;
+                        vy = -5.5;
+                        ballGravity = -34;
+                        statusEl.innerText = "⚡ ¡HIDARI REMATE ZURDO (MANO IZQ)! ⚡";
+                        setTimeout(() => { if (gameState === 'PLAYING') statusEl.innerText = ""; }, 1100);
+                    } else {
+                        setActionText("REMATE DERECHA (SIN PODER)", "#f87171");
+                    }
+                }
+
+                // Kazana: gravedad extra solo con Súper Salto activo
+                if (currentStyleKey === 'KAZANA' && kazanaSuperJump) {
+                    ballGravity = -33;
+                    vy -= 1.2;
+                }
+
+                // Sistema de Tilt (W = picado adelante abajo, sin tilt = mitad, S = atrás/fondo)
+                if (keys['KeyW']) {
+                    power *= 1.12;
+                    vy = -6.8;
+                    setActionText("W-TILT (PICADO)", "#f87171");
+                } else if (keys['KeyS']) {
+                    if (currentStyleKey === 'KAZANA') {
+                        power = 18.8;
+                        vy = -1.2;
+                        setActionText("KAZANA S-TILT (DENTRO)", "#10b981");
+                    } else if (currentStyleKey === 'JINKO') {
+                        power *= 0.85;
+                        vy = 2.0;
+                        ballSpin.z = 11.5;
+                        setActionText("JINKO BOOMERANG", "#06b6d4");
+                    } else {
+                        power = 22.5;
+                        vy = 1.6;
+                        setActionText("S-TILT (LARGO / FUERA)", "#fb923c");
+                    }
+                } else {
+                    setActionText("REMATE ESTÁNDAR", "#f87171");
+                }
+
+                // Jinko Curveball con A o D
+                if (currentStyleKey === 'JINKO' && sideTilt !== 0) {
+                    ballSpin.x = -sideTilt * 15;
+                    setActionText("JINKO CURVEBALL", "#06b6d4");
+                }
+
+                const spikeDirX = fwd.x * power + right.x * sideTilt * 4.5;
+                const spikeDirZ = fwd.z * power + right.z * sideTilt * 4.5;
+                ballVel.set(spikeDirX, vy, spikeDirZ);
+                activeAction = null;
+            }
+        }
+
+        function updateAnimations(dt) {
+            const speed = Math.hypot(player.vel.x, player.vel.z);
+
+            if (player.onGround && speed > 0.5 && !player.diving) {
+                player.animTime += dt * speed * 1.3;
+                player.leftLeg.rotation.x = Math.sin(player.animTime) * 0.65;
+                player.rightLeg.rotation.x = -Math.sin(player.animTime) * 0.65;
+            } else {
+                player.leftLeg.rotation.x *= 0.8;
+                player.rightLeg.rotation.x *= 0.8;
+            }
+
+            if (!player.onGround && !player.diving) {
+                if (keys['KeyW']) player.rig.rotation.x = 0.28;
+                else if (keys['KeyS']) player.rig.rotation.x = -0.28;
+                else player.rig.rotation.x = 0;
+            } else if (!player.diving) {
+                player.rig.rotation.x = 0;
+            }
+
+            if (swingTimer > 0) {
+                swingTimer -= dt;
+                if (currentStyleKey === 'HIDARI') {
+                    player.leftArmPivot.rotation.x = -0.6;
+                    player.rightArmPivot.rotation.x = 0;
+                } else {
+                    player.rightArmPivot.rotation.x = -0.6;
+                    player.leftArmPivot.rotation.x = 0;
+                }
+            } else if (activeAction === 'BUMP') {
+                player.leftArmPivot.rotation.x = -1.1;
+                player.rightArmPivot.rotation.x = -1.1;
+                player.leftArmPivot.rotation.z = -0.25;
+                player.rightArmPivot.rotation.z = 0.25;
+            } else if (activeAction === 'SET' || activeAction === 'JUMP_SET') {
+                player.leftArmPivot.rotation.x = -2.6;
+                player.rightArmPivot.rotation.x = -2.6;
+                player.leftArmPivot.rotation.z = -0.2;
+                player.rightArmPivot.rotation.z = 0.2;
+            } else if (activeAction === 'BLOCK') {
+                player.leftArmPivot.rotation.x = -3.0;
+                player.rightArmPivot.rotation.x = -3.0;
+                player.leftArmPivot.rotation.z = 0;
+                player.rightArmPivot.rotation.z = 0;
+            } else if (activeAction === 'SPIKE') {
+                if (currentStyleKey === 'HIDARI') {
+                    // Hidari levanta su brazo IZQUIERDO para rematar
+                    player.leftArmPivot.rotation.x = -2.9;
+                    player.rightArmPivot.rotation.x = -1.3;
+                } else {
+                    player.rightArmPivot.rotation.x = -2.9;
+                    player.leftArmPivot.rotation.x = -1.3;
+                }
+                player.leftArmPivot.rotation.z = 0;
+                player.rightArmPivot.rotation.z = 0;
+            } else if (player.onGround && speed > 0.5) {
+                player.leftArmPivot.rotation.x = -Math.sin(player.animTime) * 0.55;
+                player.rightArmPivot.rotation.x = Math.sin(player.animTime) * 0.55;
+                player.leftArmPivot.rotation.z = 0;
+                player.rightArmPivot.rotation.z = 0;
+            } else {
+                player.leftArmPivot.rotation.x *= 0.8;
+                player.rightArmPivot.rotation.x *= 0.8;
+                player.leftArmPivot.rotation.z *= 0.8;
+                player.rightArmPivot.rotation.z *= 0.8;
+            }
+
+            if (player.hitboxRing) {
+                if (actionTimer > 0) {
+                    player.hitboxRing.material.opacity = 0.35 + Math.sin(performance.now() * 0.02) * 0.15;
+                } else {
+                    player.hitboxRing.material.opacity = 0.0;
+                }
+            }
+        }
+
+        // --- BUCLE PRINCIPAL ---
+        const clock = new THREE.Clock();
+
+        function update() {
+            const dt = Math.min(clock.getDelta(), 0.05);
+
+            if (actionTimer > 0) {
+                actionTimer -= dt;
+                executeActiveAction();
+                if (actionTimer <= 0) activeAction = null;
+            }
+
+            const fwd = getLookForward();
+            const right = getLookRight();
+            let inputX = 0, inputZ = 0;
+
+            if (keys['KeyW']) { inputX += fwd.x; inputZ += fwd.z; }
+            if (keys['KeyS']) { inputX -= fwd.x; inputZ -= fwd.z; }
+            if (keys['KeyD']) { inputX += right.x; inputZ += right.z; }
+            if (keys['KeyA']) { inputX -= right.x; inputZ -= right.z; }
+
+            const inputLen = Math.hypot(inputX, inputZ);
+            if (inputLen > 0) {
+                inputX /= inputLen;
+                inputZ /= inputLen;
+            }
+
+            // Movimiento en el suelo vs inercia bloqueada en el aire
+            if (player.onGround) {
+                if (!player.diving) {
+                    const moveSpeed = 9.5;
+                    player.vel.x += (inputX * moveSpeed - player.vel.x) * 12 * dt;
+                    player.vel.z += (inputZ * moveSpeed - player.vel.z) * 12 * dt;
+                }
+            } else {
+                player.vel.x = player.airVelX;
+                player.vel.z = player.airVelZ;
+                player.vel.y += playerGravity * dt;
+            }
+
+            // Orientación del personaje estilo Roblox
+            if (shiftLock) {
+                player.mesh.rotation.y = camYaw;
+            } else if (inputLen > 0 && player.onGround) {
+                const targetRot = Math.atan2(-inputX, -inputZ);
+                player.mesh.rotation.y = targetRot;
+            }
+
+            // Carga TSH al correr hacia adelante
+            if (currentStyleKey === 'TSH' && keys['KeyW'] && player.onGround) {
+                tshCharge = Math.min(100, tshCharge + 28 * dt);
+                updateAbilityHud();
+            }
+
+            player.mesh.position.addScaledVector(player.vel, dt);
+
+            if (player.mesh.position.y <= 0) {
+                player.mesh.position.y = 0;
+                player.vel.y = 0;
+                player.onGround = true;
+            }
+            player.mesh.position.x = THREE.MathUtils.clamp(player.mesh.position.x, -courtW/2 - 1.5, courtW/2 + 1.5);
+            player.mesh.position.z = THREE.MathUtils.clamp(player.mesh.position.z, 0.65, courtL/2 + 2.0);
+
+            updateAnimations(dt);
+
+            // Actualizar Cámara 3ra Persona
+            const camTarget = player.mesh.position.clone().add(new THREE.Vector3(0, 2.0, 0));
+            if (shiftLock) {
+                camTarget.addScaledVector(right, 0.95);
+            }
+            const camOffset = new THREE.Vector3(
+                Math.sin(camYaw) * Math.cos(camPitch) * camDist,
+                Math.sin(camPitch) * camDist,
+                Math.cos(camYaw) * Math.cos(camPitch) * camDist
+            );
+            camera.position.copy(camTarget).add(camOffset);
+            camera.lookAt(camTarget);
+
+            // IA Bot Rojo
+            if (gameState === 'PLAYING') {
+                const targetX = ball.position.z < 0 ? ball.position.x : 0;
+                const targetZ = ball.position.z < 0 ? Math.min(-1.2, ball.position.z) : -7.5;
+                bot.mesh.position.x += (targetX - bot.mesh.position.x) * 4.8 * dt;
+                bot.mesh.position.z += (targetZ - bot.mesh.position.z) * 4.8 * dt;
+
+                if (bot.mesh.position.distanceTo(ball.position) < 2.6 && ball.position.z < 0) {
+                    const isSpike = ball.position.y > 2.3;
+                    ballGravity = -21;
+                    ballVel.set((Math.random() - 0.5) * 7, isSpike ? -2.2 : 12.5, isSpike ? 15.5 : 10.5);
+                    ballSpin.set(0, 0, 0);
+                }
+            }
+
+            // Física del Balón
+            if (gameState === 'SERVE_BLUE') {
+                const handOffset = currentStyleKey === 'HIDARI' ? -0.35 : 0.35;
+                ball.position.copy(player.mesh.position)
+                    .addScaledVector(fwd, 0.75)
+                    .addScaledVector(right, handOffset);
+                ball.position.y += 2.0;
+            } else if (gameState === 'PLAYING' || gameState === 'TOSS_BLUE') {
+                ballVel.y += ballGravity * dt;
+                ballVel.x += ballSpin.x * dt;
+                ballVel.z += ballSpin.z * dt;
+                ball.position.addScaledVector(ballVel, dt);
+                ball.rotation.x += ballVel.z * 0.1 * dt;
+                ball.rotation.z -= ballVel.x * 0.1 * dt;
+
+                // Colisión con la red
+                if (Math.abs(ball.position.z) < 0.45 && ball.position.y < netHeight) {
+                    ballVel.z *= -0.5;
+                    ball.position.z = ball.position.z > 0 ? 0.5 : -0.5;
+                }
+
+                // Tocar el suelo (Punto)
+                if (ball.position.y <= 0.45) {
+                    ball.position.y = 0.45;
+                    if (gameState === 'TOSS_BLUE') {
+                        scorePoint('RED', "¡FALLASTE EL SAQUE! PUNTO PARA EL BOT", 'RED');
+                    } else {
+                        const inBounds = Math.abs(ball.position.x) <= courtW/2 && Math.abs(ball.position.z) <= courtL/2;
+                        if (ball.position.z < 0) {
+                            if (inBounds) {
+                                scorePoint('BLUE', "¡PUNTO PARA TI!", 'BLUE');
+                            } else {
+                                scorePoint('RED', "¡FUERA DE CANCHA! PUNTO PARA EL BOT", 'RED');
+                            }
+                        } else {
+                            if (inBounds) {
+                                scorePoint('RED', "¡PUNTO PARA EL BOT!", 'RED');
+                            } else {
+                                scorePoint('BLUE', "¡BALÓN FUERA DEL BOT! PUNTO PARA TI", 'BLUE');
+                            }
+                        }
+                    }
+                }
+            }
+
+            ballShadow.position.x = ball.position.x;
+            ballShadow.position.z = ball.position.z;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        selectStyle('JINKO');
+        resetBall('BLUE');
+        update();
+    </script>
+</body>
+</html>
